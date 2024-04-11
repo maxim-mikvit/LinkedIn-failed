@@ -1,0 +1,42 @@
+import pandas as pd
+import requests 
+from bs4 import BeautifulSoup
+
+excel_file = '/Users/maxim/Downloads/Company page followers list(1).xlsx' #this line should have a path to your file that is in the same folder
+df = pd.read_excel(excel_file, engine='openpyxl') #adding it to help computer to read .xlsxformat
+
+# Define a function to extract name and email from a LinkedIn profile link
+def extract_info(link):
+    try:
+# Send a GET request to the LinkedIn profile link and next line is parsing links to BeautifulSoup
+        response = requests.get(link)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        name = soup.find('h1', class_='inline t-24 t-black t-normal break-words').text.strip()
+    # Finding the email and extract the text, stripping any trailing whitespaces
+        email = soup.select_one('section.pv-contact-info__contact-type.ci-email a').text.strip()
+        
+        return name, email
+    except Exception as e: 
+ # If an error occurs during extraction, print an error message
+        print(f"Error extracting info from {link}: {e}")
+        return None, None 
+
+names = []
+emails = []
+# Go through each LinkedIn profile link in the DataFrame-excel file
+for link in df['LinkedIn Profile']:
+# Extract name and email using the defined function
+    name, email = extract_info(link)
+# Append the extracted name and email to the respective lists
+    names.append(name)
+    emails.append(email)
+
+# Add the 'Name' and 'Email' columns to the excel that is newly created using the extracted data
+df['Name'] = names
+df['Email'] = emails
+
+# Specify the output Excel file name
+output_excel_file = 'employees_with_contacts.xlsx'
+# Write the DataFrame to an Excel file without including the index
+df.to_excel(output_excel_file, index=False)
